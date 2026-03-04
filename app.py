@@ -39,7 +39,6 @@ if uploaded_file is not None:
     if not all(col in df.columns for col in columnas_requeridas):
         st.error(f"El CSV debe contener las siguientes columnas: {', '.join(columnas_requeridas)}")
     else:
-        # Clasificación estricta de turno basándose en la M o V en el nombre del grupo
         def clasificar_turno(grupo):
             g = str(grupo).upper()
             if 'M' in g: return 'Matutino'
@@ -186,7 +185,6 @@ if uploaded_file is not None:
                         
                         if es_posible:
                             valid_schedules = []
-                            # Limite duro de protección de RAM para el servidor (Detiene la búsqueda a los 20,000)
                             MAX_BUSQUEDA = 20000 
                             
                             def backtrack(subj_idx, current_schedule, occupied_slots):
@@ -220,21 +218,16 @@ if uploaded_file is not None:
                                             total_free_hours += ((max(times) - min(times) + 1) - len(times)) * 0.5
                                     scored_schedules.append({'classes': sched, 'free_hours': total_free_hours})
 
-                                # Ordenar los horarios del mejor (0 horas libres) al peor
+                                # Ordenar los horarios completos del mejor al peor
                                 scored_schedules.sort(key=lambda x: x['free_hours'])
+                                
+                                # GUARDAMOS LA LISTA COMPLETA EN MEMORIA (No la recortamos aún)
+                                st.session_state['horarios_completos'] = scored_schedules
+                                st.session_state['max_resultados_render'] = max_resultados
                                 
                                 total_encontrados = len(scored_schedules)
                                 
-                                # RECORTAR LA LISTA (Protección para el Navegador)
-                                scored_schedules = scored_schedules[:max_resultados]
-                                
-                                st.session_state['horarios_generados'] = scored_schedules
-                                st.session_state['total_encontrados'] = total_encontrados
-                                
-                                mensaje_exito = f"✅ ¡Éxito! Se encontraron **{total_encontrados}** combinaciones posibles."
-                                if total_encontrados > max_resultados:
-                                    mensaje_exito += f" Mostrando el Top **{max_resultados}** de opciones con menos horas libres para no saturar tu navegador."
-                                    
+                                mensaje_exito = f"✅ ¡Éxito! Se calcularon **{total_encontrados}** combinaciones posibles."
                                 if total_encontrados >= 20000:
                                     mensaje_exito += " *(Se alcanzó el límite de búsqueda seguro del servidor de 20,000 combinaciones).* "
                                     
@@ -243,26 +236,29 @@ if uploaded_file is not None:
 # ==========================================
 # VISUALIZACIÓN Y FILTROS INTELIGENTES
 # ==========================================
-if 'horarios_generados' in st.session_state:
+if 'horarios_completos' in st.session_state:
     st.markdown("---")
     st.subheader("🔎 Resultados y Filtros Adicionales")
     
+    # 1. Obtener todos los profesores de la base COMPLETA
     todos_los_profesores = set()
-    for sched in st.session_state['horarios_generados']:
+    for sched in st.session_state['horarios_completos']:
         for row in sched['classes']:
             if row['Profesor'].strip():
                 todos_los_profesores.add(row['Profesor'])
                 
     lista_profesores_ordenada = sorted(list(todos_los_profesores))
     
+    # 2. El filtro
     profesores_seleccionados = st.multiselect(
-        "Filtrar las opciones generadas por profesor(es) específico(s):", 
+        "Filtrar todas las combinaciones por profesor(es) específico(s):", 
         options=lista_profesores_ordenada,
         placeholder="Escribe para buscar o selecciona de la lista..."
     )
     
+    # 3. Filtrar de la lista COMPLETA
     horarios_filtrados = []
-    for sched in st.session_state['horarios_generados']:
+    for sched in st.session_state['horarios_completos']:
         prof_names_in_sched = [row['Profesor'] for row in sched['classes']]
         
         matches_all = True
@@ -274,15 +270,29 @@ if 'horarios_generados' in st.session_state:
         if matches_all:
             horarios_filtrados.append(sched)
             
+    # 4. Mostrar Resultados
     if not horarios_filtrados:
-        st.error("No se encontraron horarios que incluyan a todos los profesores seleccionados simultáneamente en este Top de resultados.")
+        st.error("No se encontraron horarios que incluyan a todos los profesores seleccionados simultáneamente.")
     else:
+        max_render = st.session_state['max_resultados_render']
+        total_filtrados = len(horarios_filtrados)
+        
+        # Ahora sí, recortamos solo lo que vamos a mostrar (del resultado filtrado)
+        horarios_a_mostrar = horarios_filtrados[:max_render]
+        
         if profesores_seleccionados:
-            st.info(f"Mostrando **{len(horarios_filtrados)}** opciones que incluyen a los profesores seleccionados.")
+            mensaje = f"Se encontraron **{total_filtrados}** opciones con los profesores seleccionados."
+        else:
+            mensaje = f"Mostrando la base de datos de **{total_filtrados}** opciones disponibles."
+            
+        if total_filtrados > max_render:
+            mensaje += f" Mostrando el Top **{max_render}** más óptimas en pantalla."
+            
+        st.info(mensaje)
         
         cols_to_show = ['Grupo', 'Asignatura', 'Profesor', 'Edificio', 'Salón', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie']
         
-        for idx, sched in enumerate(horarios_filtrados, 1):
+        for idx, sched in enumerate(horarios_a_mostrar, 1):
             with st.expander(f"🏅 Opción {idx} - Horas libres totales: {sched['free_hours']} hrs", expanded=(idx==1)):
                 df_visual = pd.DataFrame(sched['classes'])[cols_to_show]
                 st.dataframe(df_visual, use_container_width=True, hide_index=True)
