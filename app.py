@@ -57,13 +57,13 @@ if uploaded_file is not None:
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            # Filtro de Turno (Matutino, Vespertino, Mixto)
+            # Filtro de Turno
             st.subheader("⏱️ Selecciona tu turno:")
             turno = st.radio(
                 "Filtrar materias por turno:",
                 ["Matutino", "Vespertino", "Mixto"],
                 horizontal=True,
-                help="Matutino buscará grupos con 'M' (ej. 6AM1), Vespertino grupos con 'V' (ej. 6AV1). Mixto mostrará todos separados por turno."
+                help="Matutino buscará grupos con 'M', Vespertino grupos con 'V'. Mixto mostrará todos separados por turno."
             )
             
         with col2:
@@ -78,14 +78,13 @@ if uploaded_file is not None:
                 step=datetime.timedelta(minutes=30)
             )
             
-        # Extraer los límites de tiempo seleccionados
         hora_inicio_limit, hora_fin_limit = rango_horario
         
-        # Convertimos los límites a índices de bloques de 30 minutos (igual que la lógica de slots)
+        # Convertimos los límites a índices de bloques de 30 minutos
         start_limit_slot = hora_inicio_limit.hour * 2 + (1 if hora_inicio_limit.minute >= 30 else 0)
         end_limit_slot = hora_fin_limit.hour * 2 + (1 if hora_fin_limit.minute >= 30 else 0)
 
-        # Aplicar el filtro de turno y crear nombres para mostrar
+        # Aplicar el filtro de turno
         if turno == "Matutino":
             df_filtrado_turno = df[df['Turno_Calc'] == 'Matutino'].copy()
             df_filtrado_turno['Asignatura_Display'] = df_filtrado_turno['Asignatura']
@@ -93,7 +92,7 @@ if uploaded_file is not None:
             df_filtrado_turno = df[df['Turno_Calc'] == 'Vespertino'].copy()
             df_filtrado_turno['Asignatura_Display'] = df_filtrado_turno['Asignatura']
         else:
-            # Mixto: se queda con todas las materias pero les añade la etiqueta
+            # Mixto
             df_filtrado_turno = df.copy()
             df_filtrado_turno['Asignatura_Display'] = df_filtrado_turno['Asignatura'] + " (" + df_filtrado_turno['Turno_Calc'] + ")"
 
@@ -103,14 +102,39 @@ if uploaded_file is not None:
             st.markdown("---")
             st.subheader("📚 Selecciona las materias obligatorias:")
             
-            materias_unicas = sorted(df_filtrado_turno['Asignatura_Display'].unique())
-            
             materias_seleccionadas = []
-            cols = st.columns(3)
-            for i, materia in enumerate(materias_unicas):
-                if str(materia).strip():
-                    if cols[i % 3].checkbox(materia):
-                        materias_seleccionadas.append(materia)
+            
+            # DISEÑO SEPARADO PARA MIXTO O NORMAL
+            if turno == "Mixto":
+                col_mat, col_vesp = st.columns(2)
+                
+                with col_mat:
+                    st.markdown("#### ☀️ Turno Matutino")
+                    mat_subjects = sorted(df_filtrado_turno[df_filtrado_turno['Turno_Calc'] == 'Matutino']['Asignatura_Display'].unique())
+                    if not mat_subjects:
+                        st.info("No hay materias matutinas.")
+                    for materia in mat_subjects:
+                        if str(materia).strip():
+                            if st.checkbox(materia, key=f"mat_{materia}"):
+                                materias_seleccionadas.append(materia)
+                                
+                with col_vesp:
+                    st.markdown("#### 🌙 Turno Vespertino")
+                    vesp_subjects = sorted(df_filtrado_turno[df_filtrado_turno['Turno_Calc'] == 'Vespertino']['Asignatura_Display'].unique())
+                    if not vesp_subjects:
+                        st.info("No hay materias vespertinas.")
+                    for materia in vesp_subjects:
+                        if str(materia).strip():
+                            if st.checkbox(materia, key=f"vesp_{materia}"):
+                                materias_seleccionadas.append(materia)
+            else:
+                # Si es un solo turno, mostramos a 3 columnas normales
+                materias_unicas = sorted(df_filtrado_turno['Asignatura_Display'].unique())
+                cols = st.columns(3)
+                for i, materia in enumerate(materias_unicas):
+                    if str(materia).strip():
+                        if cols[i % 3].checkbox(materia, key=materia):
+                            materias_seleccionadas.append(materia)
             
             st.markdown("---")
             
@@ -141,11 +165,10 @@ if uploaded_file is not None:
 
                         df_final['all_slots'] = df_final.apply(parse_slots, axis=1)
                         
-                        # FILTRO NUEVO: Descartar las clases que se salgan del rango de horario elegido por el slider
+                        # FILTRO: Descartar las clases que se salgan del rango de horario elegido
                         def esta_en_rango(slots):
-                            if not slots: return True # Si no tiene horario (ej. vacio o en linea), se permite
+                            if not slots: return True 
                             for s in slots:
-                                # Extraemos el bloque de tiempo (ignoramos el día)
                                 time_idx = s % 100
                                 if time_idx < start_limit_slot or time_idx >= end_limit_slot:
                                     return False
@@ -208,7 +231,6 @@ if 'horarios_generados' in st.session_state:
     st.markdown("---")
     st.subheader("🔎 Resultados y Filtros Adicionales")
     
-    # 1. Obtener la lista de todos los profesores únicos
     todos_los_profesores = set()
     for sched in st.session_state['horarios_generados']:
         for row in sched['classes']:
@@ -217,14 +239,12 @@ if 'horarios_generados' in st.session_state:
                 
     lista_profesores_ordenada = sorted(list(todos_los_profesores))
     
-    # 2. Crear el buscador multiselect
     profesores_seleccionados = st.multiselect(
         "Filtrar opciones por profesor(es) específico(s):", 
         options=lista_profesores_ordenada,
         placeholder="Escribe para buscar o selecciona de la lista..."
     )
     
-    # 3. Lógica para aplicar el filtro de profesores
     horarios_filtrados = []
     for sched in st.session_state['horarios_generados']:
         prof_names_in_sched = [row['Profesor'] for row in sched['classes']]
@@ -238,7 +258,6 @@ if 'horarios_generados' in st.session_state:
         if matches_all:
             horarios_filtrados.append(sched)
             
-    # 4. Mostrar resultados
     if not horarios_filtrados:
         st.error("No se encontraron horarios que incluyan a todos los profesores seleccionados simultáneamente.")
     else:
