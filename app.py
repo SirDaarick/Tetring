@@ -2,65 +2,115 @@ import streamlit as st
 import pandas as pd
 import datetime
 
-# Configuración de la página (Debe ser la primera línea)
-st.set_page_config(page_title="Generador de Horarios", layout="wide", page_icon="📅")
+# Configuración de la página
+st.set_page_config(page_title="Tetring: Generador de Horarios", layout="wide", page_icon="🟦")
 
-# === INYECCIÓN DE CSS PARA MEJORAR EL DISEÑO ===
+# === VENTANA EMERGENTE (MODAL) DE INSTRUCCIONES ===
+@st.dialog("ℹ️ ¿Cómo generar tu archivo CSV?")
+def mostrar_instrucciones():
+    st.write("Esta aplicación necesita un archivo `.csv` con la lista de todas las materias disponibles. Para evitar escribirlo a mano, utiliza **Gemini** o **ChatGPT**.")
+    st.write("**Pasos a seguir:**")
+    st.write("1. Toma capturas de pantalla de los horarios oficiales.")
+    st.write("2. Sube las imágenes a la IA y envíale exactamente este prompt:")
+    st.code("""Actúa como extractor de datos. Convierte los horarios de las imágenes en código CSV.
+Columnas exactas: Grupo, Asignatura, Profesor, Edificio, Salón, Lun, Mar, Mie, Jue, Vie.
+Formato de hora: HH:MM-HH:MM (ej. 07:00-08:30). Deja la celda completamente vacía si no hay clase ese día.""", language="text")
+    st.write("3. Copia el texto devuelto, guárdalo en un bloc de notas como `materias.csv` y súbelo en el panel izquierdo.")
+
+# === INYECCIÓN DE CSS: MIDNIGHT ACADEMIC & ANIMACIÓN TETRIS ===
 st.markdown("""
     <style>
-    /* Estilo del título principal */
-    .main-header { font-size: 2.8rem; font-weight: 800; color: #7B113A; text-align: center; margin-bottom: 0px; }
-    .sub-header { font-size: 1.2rem; color: #555; text-align: center; margin-bottom: 30px; }
+    /* Fondo animado de Tetris aplicado al contenedor principal de Streamlit */
+    [data-testid="stAppViewContainer"] {
+        background-color: #0b1120;
+        background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%236366f1' fill-opacity='0.04'%3E%3Cpath d='M20 20 h20 v60 h-20 z M40 60 h20 v20 h-20 z'/%3E%3Cpath d='M80 20 h40 v20 h-40 z M100 40 h20 v40 h-20 z'/%3E%3C/g%3E%3C/svg%3E");
+        animation: tetris-fall 30s linear infinite;
+    }
     
-    /* Botones profesionales con animación */
+    @keyframes tetris-fall {
+        0% { background-position: 0px -1000px; }
+        100% { background-position: 0px 1000px; }
+    }
+
+    /* Título principal profesional pero con identidad */
+    .main-header { 
+        font-size: 2.8rem; 
+        font-weight: 800; 
+        color: #e2e8f0; 
+        margin-bottom: 0px; 
+        letter-spacing: -1px;
+    }
+    .sub-header { 
+        font-size: 1.1rem; 
+        color: #64748b; 
+        margin-bottom: 30px; 
+    }
+    
+    /* Botón principal sutilmente estructurado */
     div.stButton > button:first-child {
-        background-color: #7B113A;
+        background-color: #3730a3;
         color: white;
-        border-radius: 8px;
+        border-radius: 6px; 
+        border: 1px solid #4f46e5;
         padding: 10px 24px;
-        font-weight: bold;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease;
         width: 100%;
     }
     div.stButton > button:first-child:hover {
+        background-color: #4f46e5;
+        border-color: #6366f1;
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-        background-color: #5A0C2A;
     }
     
-    /* Tarjetas de expansores más limpias */
-    .streamlit-expanderHeader {
-        font-weight: bold !important;
-        font-size: 16px !important;
-        color: #2C3E50 !important;
+    /* Estilo específico para el botón de instrucciones (Top Right) */
+    .btn-instrucciones button {
+        background-color: transparent !important;
+        border: 1px solid #64748b !important;
+        color: #cbd5e1 !important;
+        margin-top: 15px;
+    }
+    .btn-instrucciones button:hover {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Título de la App
-st.markdown("<div class='main-header'>Generador Automático de Horarios</div>", unsafe_allow_html=True)
-st.markdown("<div class='sub-header'>Optimiza tus tiempos, evita empalmes y encuentra tu semestre ideal. <br><span style='font-size: 0.9em; color: #888;'>Desarrollado por Daarick</span></div>", unsafe_allow_html=True)
+# ==========================================
+# ENCABEZADO SUPERIOR (Título a la izq, Botón a la der)
+# ==========================================
+col_titulo, col_boton = st.columns([4, 1])
+
+with col_titulo:
+    st.markdown("<div class='main-header'>Tetring: Generador de Horarios</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sub-header'>Organiza y optimiza tus clases sin empalmes. Desarrollado por Daarick.</div>", unsafe_allow_html=True)
+
+with col_boton:
+    st.markdown("<div class='btn-instrucciones'>", unsafe_allow_html=True)
+    if st.button("ℹ️ Cómo usar"):
+        mostrar_instrucciones()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # BARRA LATERAL (SIDEBAR) - PANEL DE CONTROL
 # ==========================================
 with st.sidebar:
     st.markdown("### ⚙️ Panel de Control")
-    uploaded_file = st.file_uploader("📂 Sube tu archivo CSV", type="csv")
+    uploaded_file = st.file_uploader("📂 Base de datos (CSV)", type="csv")
     
     st.markdown("---")
     st.markdown("### 🎛️ Filtros Globales")
     
     turno = st.radio(
-        "⏱️ Selecciona tu turno:",
+        "Modalidad de Turno:",
         ["Matutino", "Vespertino", "Mixto"],
-        help="Solo usará grupos con 'M' (Matutino) o 'V' (Vespertino)."
+        help="Limita los grupos según la nomenclatura oficial ('M' o 'V')."
     )
     
     rango_horario = st.slider(
-        "⏰ Delimita tu horario:",
+        "Franja Horaria:",
         min_value=datetime.time(6, 0),
         max_value=datetime.time(22, 0),
         value=(datetime.time(7, 0), datetime.time(22, 0)),
@@ -69,29 +119,22 @@ with st.sidebar:
     )
     
     max_resultados = st.selectbox(
-        "🛡️ Protección de RAM (Top Resultados):",
+        "Límite de Renderizado:",
         [50, 100, 200, 500],
         index=0,
-        help="Limita cuántas tablas se dibujan en pantalla."
+        help="Protección de memoria. Límite de opciones a mostrar en pantalla."
     )
-    
-    st.markdown("---")
-    with st.expander("ℹ️ ¿Cómo armar mi CSV?"):
-        st.write("Sube capturas de tus horarios a una IA (Gemini/ChatGPT) y usa este prompt:")
-        st.code("""Actúa como extractor de datos. Convierte los horarios de las imágenes en CSV.
-Columnas exactas: Grupo, Asignatura, Profesor, Edificio, Salón, Lun, Mar, Mie, Jue, Vie.
-Formato hora: HH:MM-HH:MM. Celdas vacías si no hay clase.""", language="text")
 
 # ==========================================
-# ÁREA PRINCIPAL - SELECCIÓN Y RESULTADOS
+# ÁREA PRINCIPAL
 # ==========================================
 if uploaded_file is None:
-    st.info("👈 **Para comenzar, sube tu archivo `materias.csv` en el Panel de Control a tu izquierda.**")
+    st.info("👈 **Para comenzar, carga tu archivo `materias.csv` en el panel izquierdo.**")
 else:
     df = pd.read_csv(uploaded_file)
     df = df.fillna('')
     
-    # Limpieza de datos (Evita los duplicados)
+    # Limpieza de datos
     df['Grupo'] = df['Grupo'].astype(str).str.strip()
     df['Asignatura'] = df['Asignatura'].astype(str).str.strip()
     df = df.drop_duplicates()
@@ -99,7 +142,7 @@ else:
 
     columnas_requeridas = ['Asignatura', 'Grupo', 'Profesor', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie']
     if not all(col in df.columns for col in columnas_requeridas):
-        st.error(f"El CSV debe contener estas columnas: {', '.join(columnas_requeridas)}")
+        st.error(f"Error de formato. El CSV requiere estas columnas: {', '.join(columnas_requeridas)}")
     else:
         def clasificar_turno(grupo):
             g = str(grupo).upper()
@@ -113,7 +156,7 @@ else:
         start_limit_slot = hora_inicio_limit.hour * 2 + (1 if hora_inicio_limit.minute >= 30 else 0)
         end_limit_slot = hora_fin_limit.hour * 2 + (1 if hora_fin_limit.minute >= 30 else 0)
 
-        st.markdown("### 📚 Selecciona las materias a cursar")
+        st.markdown("### 📚 Selecciona tus materias")
         
         materias_seleccionadas = []
         
@@ -139,13 +182,13 @@ else:
                 if str(materia).strip() and cols[i % 3].checkbox(materia, key=materia):
                     materias_seleccionadas.append((turno, materia))
         
-        st.markdown("<br>", unsafe_allow_html=True) # Espacio visual
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        if st.button("🚀 GENERAR HORARIOS INTELIGENTES"):
+        if st.button("🚀 Generar Horarios"):
             if not materias_seleccionadas:
-                st.warning("⚠️ Selecciona al menos una materia.")
+                st.warning("⚠️ Selecciona al menos una materia para continuar.")
             else:
-                with st.spinner('Procesando algoritmo de combinaciones...'):
+                with st.spinner('Procesando combinaciones óptimas...'):
                     st.session_state['estado_busqueda'] = {
                         'materias': sorted(materias_seleccionadas),
                         'turno': turno,
@@ -187,7 +230,7 @@ else:
                     for turno_req, subj in materias_seleccionadas:
                         rows = df_final[(df_final['Asignatura'] == subj) & (df_final['Turno_Calc'] == turno_req)].to_dict('records')
                         if not rows:
-                            st.error(f"❌ '{subj}' no tiene grupos disponibles de {hora_inicio_limit.strftime('%H:%M')} a {hora_fin_limit.strftime('%H:%M')}.")
+                            st.error(f"❌ La materia '{subj}' no tiene grupos disponibles de {hora_inicio_limit.strftime('%H:%M')} a {hora_fin_limit.strftime('%H:%M')}.")
                             es_posible = False
                             break
                         subjects_data.append(rows)
@@ -211,7 +254,7 @@ else:
                         backtrack(0, [], set())
                         
                         if not valid_schedules:
-                            st.error("❌ Imposible generar horario sin empalmes con estos parámetros.")
+                            st.error("❌ No existen combinaciones posibles sin empalmes con estos parámetros.")
                         else:
                             scored_schedules = []
                             for sched in valid_schedules:
@@ -230,7 +273,7 @@ else:
                             st.session_state['max_resultados_render'] = max_resultados
 
 # ==========================================
-# RENDERIZADO DE RESULTADOS (FUERA DEL BOTÓN)
+# RENDERIZADO DE RESULTADOS
 # ==========================================
 if 'horarios_completos' in st.session_state:
     estado_actual = {
@@ -240,17 +283,16 @@ if 'horarios_completos' in st.session_state:
     }
     
     if st.session_state.get('estado_busqueda') != estado_actual:
-        st.warning("⚠️ **ATENCIÓN:** Has modificado los filtros. Haz clic en **'GENERAR HORARIOS INTELIGENTES'** para actualizar.")
+        st.warning("⚠️ Has modificado los parámetros. Haz clic en **'Generar Horarios'** para recalcular.")
     else:
         st.markdown("---")
         
-        # Métrica Visual Superior
         col_met1, col_met2, col_met3 = st.columns(3)
-        col_met1.metric(label="Combinaciones Encontradas", value=len(st.session_state['horarios_completos']))
-        col_met2.metric(label="Materias Seleccionadas", value=len(materias_seleccionadas))
-        col_met3.metric(label="Mejor Opción (Horas Libres)", value=f"{st.session_state['horarios_completos'][0]['free_hours']} hrs")
+        col_met1.metric(label="Opciones Viables", value=len(st.session_state['horarios_completos']))
+        col_met2.metric(label="Materias Asignadas", value=len(materias_seleccionadas))
+        col_met3.metric(label="Opción Óptima (Horas Libres)", value=f"{st.session_state['horarios_completos'][0]['free_hours']} hrs")
 
-        st.markdown("### 🔎 Filtro de Profesores")
+        st.markdown("### 🔎 Filtrar por Catedrático")
         
         todos_los_profesores = set()
         for sched in st.session_state['horarios_completos']:
@@ -258,7 +300,7 @@ if 'horarios_completos' in st.session_state:
                 if row['Profesor'].strip(): todos_los_profesores.add(row['Profesor'])
                     
         profesores_seleccionados = st.multiselect(
-            "Priorizar opciones que incluyan a estos profesores:", 
+            "Selecciona los profesores requeridos:", 
             options=sorted(list(todos_los_profesores))
         )
         
@@ -269,12 +311,12 @@ if 'horarios_completos' in st.session_state:
                 horarios_filtrados.append(sched)
                 
         if not horarios_filtrados:
-            st.error("No hay combinaciones que incluyan a todos esos profesores juntos.")
+            st.error("Ninguna de las combinaciones viables incluye a todos estos profesores juntos.")
         else:
             max_render = st.session_state['max_resultados_render']
             horarios_a_mostrar = horarios_filtrados[:max_render]
             
-            st.success(f"Mostrando {min(len(horarios_filtrados), max_render)} de {len(horarios_filtrados)} opciones disponibles.")
+            st.success(f"Mostrando {min(len(horarios_filtrados), max_render)} de {len(horarios_filtrados)} horarios disponibles.")
             
             cols_to_show = ['Grupo', 'Asignatura', 'Profesor', 'Edificio', 'Salón', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie']
             
@@ -286,4 +328,4 @@ if 'horarios_completos' in st.session_state:
                     _, col_btn = st.columns([4, 1])
                     with col_btn:
                         csv_data = df_visual.to_csv(index=False).encode('utf-8')
-                        st.download_button("📥 Descargar CSV", data=csv_data, file_name=f"horario_opcion_{idx}.csv", key=f"dl_{idx}")
+                        st.download_button("📥 Descargar CSV", data=csv_data, file_name=f"tetring_horario_{idx}.csv", key=f"dl_{idx}")
