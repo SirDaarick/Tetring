@@ -35,10 +35,18 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df = df.fillna('')
     
+    # === SISTEMA DE LIMPIEZA DE DATOS (Evita los duplicados) ===
+    df['Grupo'] = df['Grupo'].astype(str).str.strip()
+    df['Asignatura'] = df['Asignatura'].astype(str).str.strip()
+    df = df.drop_duplicates()
+    df = df.drop_duplicates(subset=['Grupo', 'Asignatura'], keep='first')
+    # ===============================================================
+
     columnas_requeridas = ['Asignatura', 'Grupo', 'Profesor', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie']
     if not all(col in df.columns for col in columnas_requeridas):
         st.error(f"El CSV debe contener las siguientes columnas: {', '.join(columnas_requeridas)}")
     else:
+        # Clasificar cada fila estrictamente por la letra de su grupo
         def clasificar_turno(grupo):
             g = str(grupo).upper()
             if 'M' in g: return 'Matutino'
@@ -85,214 +93,231 @@ if uploaded_file is not None:
         start_limit_slot = hora_inicio_limit.hour * 2 + (1 if hora_inicio_limit.minute >= 30 else 0)
         end_limit_slot = hora_fin_limit.hour * 2 + (1 if hora_fin_limit.minute >= 30 else 0)
 
-        if turno == "Matutino":
-            df_filtrado_turno = df[df['Turno_Calc'] == 'Matutino'].copy()
-            df_filtrado_turno['Asignatura_Display'] = df_filtrado_turno['Asignatura']
-        elif turno == "Vespertino":
-            df_filtrado_turno = df[df['Turno_Calc'] == 'Vespertino'].copy()
-            df_filtrado_turno['Asignatura_Display'] = df_filtrado_turno['Asignatura']
-        else:
-            df_filtrado_turno = df.copy()
-            df_filtrado_turno['Asignatura_Display'] = df_filtrado_turno['Asignatura'] + " (" + df_filtrado_turno['Turno_Calc'] + ")"
-
-        if df_filtrado_turno.empty:
-            st.warning(f"No se encontraron materias para el turno {turno} en el CSV.")
-        else:
-            st.markdown("---")
-            st.subheader("📚 Selecciona las materias obligatorias:")
+        st.markdown("---")
+        st.subheader("📚 Selecciona las materias obligatorias:")
+        
+        # === NUEVA LÓGICA DE SELECCIÓN ESTRICTA (Sin cambiar nombres) ===
+        materias_seleccionadas = [] # Guardará un par: (Turno_Deseado, Nombre_Materia)
+        
+        if turno == "Mixto":
+            col_mat, col_vesp = st.columns(2)
             
-            materias_seleccionadas = []
-            
-            if turno == "Mixto":
-                col_mat, col_vesp = st.columns(2)
-                
-                with col_mat:
-                    st.markdown("#### ☀️ Turno Matutino")
-                    mat_subjects = sorted(df_filtrado_turno[df_filtrado_turno['Turno_Calc'] == 'Matutino']['Asignatura_Display'].unique())
-                    if not mat_subjects:
-                        st.info("No hay materias matutinas.")
-                    for materia in mat_subjects:
-                        if str(materia).strip():
-                            if st.checkbox(materia, key=f"mat_{materia}"):
-                                materias_seleccionadas.append(materia)
-                                
-                with col_vesp:
-                    st.markdown("#### 🌙 Turno Vespertino")
-                    vesp_subjects = sorted(df_filtrado_turno[df_filtrado_turno['Turno_Calc'] == 'Vespertino']['Asignatura_Display'].unique())
-                    if not vesp_subjects:
-                        st.info("No hay materias vespertinas.")
-                    for materia in vesp_subjects:
-                        if str(materia).strip():
-                            if st.checkbox(materia, key=f"vesp_{materia}"):
-                                materias_seleccionadas.append(materia)
-            else:
-                materias_unicas = sorted(df_filtrado_turno['Asignatura_Display'].unique())
-                cols = st.columns(3)
-                for i, materia in enumerate(materias_unicas):
+            with col_mat:
+                st.markdown("#### ☀️ Turno Matutino")
+                mat_subjects = sorted(df[df['Turno_Calc'] == 'Matutino']['Asignatura'].unique())
+                if not mat_subjects:
+                    st.info("No hay materias matutinas.")
+                for materia in mat_subjects:
                     if str(materia).strip():
-                        if cols[i % 3].checkbox(materia, key=materia):
-                            materias_seleccionadas.append(materia)
-            
-            st.markdown("---")
-            
-            if st.button("🚀 Generar Horarios"):
-                if not materias_seleccionadas:
-                    st.warning("⚠️ Por favor, selecciona al menos una materia para continuar.")
-                else:
-                    with st.spinner('Filtrando clases y calculando combinaciones (esto puede tardar unos segundos)...'):
-                        df_final = df_filtrado_turno[df_filtrado_turno['Asignatura_Display'].isin(materias_seleccionadas)].copy()
-                        
-                        def parse_slots(row):
-                            slots = set()
-                            for day_idx, day in enumerate(['Lun', 'Mar', 'Mie', 'Jue', 'Vie']):
-                                time_str = row[day]
-                                if not time_str or time_str == 'X':
-                                    continue
-                                try:
-                                    start, end = time_str.split('-')
-                                    sh, sm = map(int, start.split(':'))
-                                    eh, em = map(int, end.split(':'))
-                                    start_idx = sh * 2 + (1 if sm >= 30 else 0)
-                                    end_idx = eh * 2 + (1 if em >= 30 else 0)
-                                    for s in range(start_idx, end_idx):
-                                        slots.add(day_idx * 100 + s)
-                                except:
-                                    pass
-                            return slots
-
-                        df_final['all_slots'] = df_final.apply(parse_slots, axis=1)
-                        
-                        def esta_en_rango(slots):
-                            if not slots: return True 
-                            for s in slots:
-                                time_idx = s % 100
-                                if time_idx < start_limit_slot or time_idx >= end_limit_slot:
-                                    return False
-                            return True
+                        if st.checkbox(materia, key=f"mat_{materia}"):
+                            materias_seleccionadas.append(('Matutino', materia))
                             
-                        df_final = df_final[df_final['all_slots'].apply(esta_en_rango)]
-                        
-                        subjects_data = []
-                        es_posible = True
-                        
-                        for subj in materias_seleccionadas:
-                            rows = df_final[df_final['Asignatura_Display'] == subj].to_dict('records')
-                            if not rows:
-                                st.error(f"❌ La materia '{subj}' no tiene grupos disponibles dentro del horario que elegiste ({hora_inicio_limit.strftime('%H:%M')} a {hora_fin_limit.strftime('%H:%M')}).")
-                                es_posible = False
-                                break
-                            subjects_data.append(rows)
-                        
-                        if es_posible:
-                            valid_schedules = []
-                            MAX_BUSQUEDA = 20000 
-                            
-                            def backtrack(subj_idx, current_schedule, occupied_slots):
-                                if len(valid_schedules) >= MAX_BUSQUEDA:
-                                    return
-                                    
-                                if subj_idx == len(materias_seleccionadas):
-                                    valid_schedules.append(current_schedule.copy())
-                                    return
-                                    
-                                for row in subjects_data[subj_idx]:
-                                    if not row['all_slots'].intersection(occupied_slots):
-                                        current_schedule.append(row)
-                                        backtrack(subj_idx + 1, current_schedule, occupied_slots.union(row['all_slots']))
-                                        current_schedule.pop()
+            with col_vesp:
+                st.markdown("#### 🌙 Turno Vespertino")
+                vesp_subjects = sorted(df[df['Turno_Calc'] == 'Vespertino']['Asignatura'].unique())
+                if not vesp_subjects:
+                    st.info("No hay materias vespertinas.")
+                for materia in vesp_subjects:
+                    if str(materia).strip():
+                        if st.checkbox(materia, key=f"vesp_{materia}"):
+                            materias_seleccionadas.append(('Vespertino', materia))
+        else:
+            # Si eligió solo Matutino o solo Vespertino
+            materias_unicas = sorted(df[df['Turno_Calc'] == turno]['Asignatura'].unique())
+            cols = st.columns(3)
+            for i, materia in enumerate(materias_unicas):
+                if str(materia).strip():
+                    if cols[i % 3].checkbox(materia, key=materia):
+                        materias_seleccionadas.append((turno, materia))
+        
+        st.markdown("---")
+        
+        if st.button("🚀 Generar Horarios"):
+            if not materias_seleccionadas:
+                st.warning("⚠️ Por favor, selecciona al menos una materia para continuar.")
+            else:
+                with st.spinner('Filtrando clases y calculando combinaciones...'):
+                    
+                    # Guardamos el estado exacto de la búsqueda para el control de la página
+                    st.session_state['estado_busqueda'] = {
+                        'materias': sorted(materias_seleccionadas),
+                        'turno': turno,
+                        'horario': rango_horario
+                    }
 
-                            backtrack(0, [], set())
-                            
-                            if not valid_schedules:
-                                st.error("❌ No se encontraron combinaciones posibles sin traslapes para las materias y el rango de horario seleccionados.")
-                            else:
-                                scored_schedules = []
-                                for sched in valid_schedules:
-                                    total_free_hours = 0
-                                    day_slots = {i: [] for i in range(5)}
-                                    for row in sched:
-                                        for slot in row['all_slots']:
-                                            day_slots[slot // 100].append(slot % 100)
-                                    for day_idx, times in day_slots.items():
-                                        if times:
-                                            total_free_hours += ((max(times) - min(times) + 1) - len(times)) * 0.5
-                                    scored_schedules.append({'classes': sched, 'free_hours': total_free_hours})
+                    df_final = df.copy()
+                    
+                    def parse_slots(row):
+                        slots = set()
+                        for day_idx, day in enumerate(['Lun', 'Mar', 'Mie', 'Jue', 'Vie']):
+                            time_str = row[day]
+                            if not time_str or time_str == 'X':
+                                continue
+                            try:
+                                start, end = time_str.split('-')
+                                sh, sm = map(int, start.split(':'))
+                                eh, em = map(int, end.split(':'))
+                                start_idx = sh * 2 + (1 if sm >= 30 else 0)
+                                end_idx = eh * 2 + (1 if em >= 30 else 0)
+                                for s in range(start_idx, end_idx):
+                                    slots.add(day_idx * 100 + s)
+                            except:
+                                pass
+                        return slots
 
-                                # Ordenar los horarios completos del mejor al peor
-                                scored_schedules.sort(key=lambda x: x['free_hours'])
+                    df_final['all_slots'] = df_final.apply(parse_slots, axis=1)
+                    
+                    def esta_en_rango(slots):
+                        if not slots: return True 
+                        for s in slots:
+                            time_idx = s % 100
+                            if time_idx < start_limit_slot or time_idx >= end_limit_slot:
+                                return False
+                        return True
+                        
+                    df_final = df_final[df_final['all_slots'].apply(esta_en_rango)]
+                    
+                    subjects_data = []
+                    es_posible = True
+                    
+                    # === FILTRO ESTRICTO ===
+                    # Busca la materia EXACTA asegurándose que el grupo corresponda al turno solicitado
+                    for turno_req, subj in materias_seleccionadas:
+                        rows = df_final[(df_final['Asignatura'] == subj) & (df_final['Turno_Calc'] == turno_req)].to_dict('records')
+                        if not rows:
+                            st.error(f"❌ La materia '{subj}' no tiene grupos disponibles en el turno {turno_req} dentro del horario que elegiste ({hora_inicio_limit.strftime('%H:%M')} a {hora_fin_limit.strftime('%H:%M')}).")
+                            es_posible = False
+                            break
+                        subjects_data.append(rows)
+                    
+                    if es_posible:
+                        valid_schedules = []
+                        MAX_BUSQUEDA = 20000 
+                        
+                        subjects_data.sort(key=len)
+                        
+                        def backtrack(subj_idx, current_schedule, occupied_slots):
+                            if len(valid_schedules) >= MAX_BUSQUEDA:
+                                return
                                 
-                                # GUARDAMOS LA LISTA COMPLETA EN MEMORIA (No la recortamos aún)
-                                st.session_state['horarios_completos'] = scored_schedules
-                                st.session_state['max_resultados_render'] = max_resultados
+                            if subj_idx == len(materias_seleccionadas):
+                                valid_schedules.append(current_schedule.copy())
+                                return
                                 
-                                total_encontrados = len(scored_schedules)
+                            for row in subjects_data[subj_idx]:
+                                if not row['all_slots'].intersection(occupied_slots):
+                                    current_schedule.append(row)
+                                    backtrack(subj_idx + 1, current_schedule, occupied_slots.union(row['all_slots']))
+                                    current_schedule.pop()
+
+                        backtrack(0, [], set())
+                        
+                        if not valid_schedules:
+                            st.error("❌ No se encontraron combinaciones posibles sin traslapes para las materias y el rango de horario seleccionados.")
+                        else:
+                            scored_schedules = []
+                            for sched in valid_schedules:
+                                total_free_hours = 0
+                                day_slots = {i: [] for i in range(5)}
+                                for row in sched:
+                                    for slot in row['all_slots']:
+                                        day_slots[slot // 100].append(slot % 100)
+                                for day_idx, times in day_slots.items():
+                                    if times:
+                                        total_free_hours += ((max(times) - min(times) + 1) - len(times)) * 0.5
+                                scored_schedules.append({'classes': sched, 'free_hours': total_free_hours})
+
+                            scored_schedules.sort(key=lambda x: x['free_hours'])
+                            
+                            st.session_state['horarios_completos'] = scored_schedules
+                            st.session_state['max_resultados_render'] = max_resultados
+                            
+                            total_encontrados = len(scored_schedules)
+                            
+                            mensaje_exito = f"✅ ¡Éxito! Se calcularon **{total_encontrados}** combinaciones posibles."
+                            if total_encontrados >= 20000:
+                                mensaje_exito += " *(Se alcanzó el límite de búsqueda seguro del servidor).* "
                                 
-                                mensaje_exito = f"✅ ¡Éxito! Se calcularon **{total_encontrados}** combinaciones posibles."
-                                if total_encontrados >= 20000:
-                                    mensaje_exito += " *(Se alcanzó el límite de búsqueda seguro del servidor de 20,000 combinaciones).* "
-                                    
-                                st.success(mensaje_exito)
+                            st.success(mensaje_exito)
 
 # ==========================================
 # VISUALIZACIÓN Y FILTROS INTELIGENTES
 # ==========================================
 if 'horarios_completos' in st.session_state:
     st.markdown("---")
-    st.subheader("🔎 Resultados y Filtros Adicionales")
     
-    # 1. Obtener todos los profesores de la base COMPLETA
-    todos_los_profesores = set()
-    for sched in st.session_state['horarios_completos']:
-        for row in sched['classes']:
-            if row['Profesor'].strip():
-                todos_los_profesores.add(row['Profesor'])
-                
-    lista_profesores_ordenada = sorted(list(todos_los_profesores))
+    estado_actual = {
+        'materias': sorted(materias_seleccionadas) if 'materias_seleccionadas' in locals() else [],
+        'turno': turno if 'turno' in locals() else "Matutino",
+        'horario': rango_horario if 'rango_horario' in locals() else ()
+    }
     
-    # 2. El filtro
-    profesores_seleccionados = st.multiselect(
-        "Filtrar todas las combinaciones por profesor(es) específico(s):", 
-        options=lista_profesores_ordenada,
-        placeholder="Escribe para buscar o selecciona de la lista..."
-    )
-    
-    # 3. Filtrar de la lista COMPLETA
-    horarios_filtrados = []
-    for sched in st.session_state['horarios_completos']:
-        prof_names_in_sched = [row['Profesor'] for row in sched['classes']]
-        
-        matches_all = True
-        for prof in profesores_seleccionados:
-            if prof not in prof_names_in_sched:
-                matches_all = False
-                break
-                
-        if matches_all:
-            horarios_filtrados.append(sched)
-            
-    # 4. Mostrar Resultados
-    if not horarios_filtrados:
-        st.error("No se encontraron horarios que incluyan a todos los profesores seleccionados simultáneamente.")
+    if st.session_state.get('estado_busqueda') != estado_actual:
+        st.warning("⚠️ **ATENCIÓN:** Has modificado las casillas o los filtros. Por favor, haz clic nuevamente en el botón **'🚀 Generar Horarios'** para actualizar las tablas de abajo.")
     else:
-        max_render = st.session_state['max_resultados_render']
-        total_filtrados = len(horarios_filtrados)
+        st.subheader("🔎 Resultados y Filtros Adicionales")
         
-        # Ahora sí, recortamos solo lo que vamos a mostrar (del resultado filtrado)
-        horarios_a_mostrar = horarios_filtrados[:max_render]
+        todos_los_profesores = set()
+        for sched in st.session_state['horarios_completos']:
+            for row in sched['classes']:
+                if row['Profesor'].strip():
+                    todos_los_profesores.add(row['Profesor'])
+                    
+        lista_profesores_ordenada = sorted(list(todos_los_profesores))
         
-        if profesores_seleccionados:
-            mensaje = f"Se encontraron **{total_filtrados}** opciones con los profesores seleccionados."
+        profesores_seleccionados = st.multiselect(
+            "Filtrar todas las combinaciones por profesor(es) específico(s):", 
+            options=lista_profesores_ordenada,
+            placeholder="Escribe para buscar o selecciona de la lista..."
+        )
+        
+        horarios_filtrados = []
+        for sched in st.session_state['horarios_completos']:
+            prof_names_in_sched = [row['Profesor'] for row in sched['classes']]
+            
+            matches_all = True
+            for prof in profesores_seleccionados:
+                if prof not in prof_names_in_sched:
+                    matches_all = False
+                    break
+                    
+            if matches_all:
+                horarios_filtrados.append(sched)
+                
+        if not horarios_filtrados:
+            st.error("No se encontraron horarios que incluyan a todos los profesores seleccionados simultáneamente.")
         else:
-            mensaje = f"Mostrando la base de datos de **{total_filtrados}** opciones disponibles."
+            max_render = st.session_state['max_resultados_render']
+            total_filtrados = len(horarios_filtrados)
             
-        if total_filtrados > max_render:
-            mensaje += f" Mostrando el Top **{max_render}** más óptimas en pantalla."
+            horarios_a_mostrar = horarios_filtrados[:max_render]
             
-        st.info(mensaje)
-        
-        cols_to_show = ['Grupo', 'Asignatura', 'Profesor', 'Edificio', 'Salón', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie']
-        
-        for idx, sched in enumerate(horarios_a_mostrar, 1):
-            with st.expander(f"🏅 Opción {idx} - Horas libres totales: {sched['free_hours']} hrs", expanded=(idx==1)):
-                df_visual = pd.DataFrame(sched['classes'])[cols_to_show]
-                st.dataframe(df_visual, use_container_width=True, hide_index=True)
+            if profesores_seleccionados:
+                mensaje = f"Se encontraron **{total_filtrados}** opciones con los profesores seleccionados."
+            else:
+                mensaje = f"Mostrando la base de datos de **{total_filtrados}** opciones disponibles."
+                
+            if total_filtrados > max_render:
+                mensaje += f" Mostrando el Top **{max_render}** más óptimas en pantalla."
+                
+            st.info(mensaje)
+            
+            # La tabla final usará el nombre original limpio sin (Vespertinos) agregados al nombre
+            cols_to_show = ['Grupo', 'Asignatura', 'Profesor', 'Edificio', 'Salón', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie']
+            
+            for idx, sched in enumerate(horarios_a_mostrar, 1):
+                with st.expander(f"🏅 Opción {idx} - Horas libres totales: {sched['free_hours']} hrs", expanded=(idx==1)):
+                    df_visual = pd.DataFrame(sched['classes'])[cols_to_show]
+                    
+                    st.dataframe(df_visual, use_container_width=True, hide_index=True)
+                    
+                    col_espacio, col_boton = st.columns([4, 1])
+                    with col_boton:
+                        csv_data = df_visual.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            label="📥 Descargar (CSV)",
+                            data=csv_data,
+                            file_name=f"mi_horario_opcion_{idx}.csv",
+                            mime="text/csv",
+                            key=f"btn_descarga_{idx}"
+                        )
