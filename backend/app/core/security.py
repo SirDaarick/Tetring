@@ -4,6 +4,7 @@ Todas las operaciones criptográficas son asíncronas compatibles con el resto
 de la aplicación FastAPI.
 """
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -110,7 +111,7 @@ def verify_token(token: str, token_type: str) -> dict[str, Any]:
 def encrypt_value(value: str) -> bytes:
     """Cifra un valor con AES-256-GCM y adjunta el nonce al ciphertext."""
     aesgcm: AESGCM = AESGCM(_get_encryption_key())
-    nonce: bytes = AESGCM.generate_nonce()
+    nonce: bytes = os.urandom(12)
     ciphertext: bytes = aesgcm.encrypt(nonce, value.encode("utf-8"), None)
     return nonce + ciphertext
 
@@ -121,3 +122,23 @@ def decrypt_value(encrypted: bytes) -> str:
     nonce: bytes = encrypted[:12]
     ciphertext: bytes = encrypted[12:]
     return aesgcm.decrypt(nonce, ciphertext, None).decode("utf-8")
+
+
+def encrypt_saes_credentials(login: str, session: str) -> tuple[bytes, bytes]:
+    """Cifra las credenciales SAES (`login` y `session`) con AES-256-GCM.
+
+    Retorna una tupla `(encrypted_login, encrypted_session)` lista para
+    almacenarse en la base de datos.
+    """
+    return encrypt_value(login), encrypt_value(session)
+
+
+def decrypt_saes_credentials(encrypted_login: bytes, encrypted_session: bytes) -> dict[str, str]:
+    """Descifra las credenciales SAES almacenadas en la base de datos.
+
+    Retorna un diccionario con las claves `login` y `session`.
+    """
+    return {
+        "login": decrypt_value(encrypted_login),
+        "session": decrypt_value(encrypted_session),
+    }

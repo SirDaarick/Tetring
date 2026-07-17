@@ -21,7 +21,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Modelos registrados para autogenerar migraciones (se importarán en fases posteriores)
-# from app.models import user, school, saes_credential, kardex, curriculum, current_schedule, schedule, professor_review  # noqa: E501
+from app.models import saes_credential, user  # noqa: E501, F401
 
 config = context.config
 
