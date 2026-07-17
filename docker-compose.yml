@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tetring-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tetring
+      POSTGRES_PASSWORD: tetring
+      POSTGRES_DB: tetring
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tetring -d tetring"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  saes-api:
+    image: node:20-alpine
+    container_name: tetring-saes-api
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./saes-api:/app
+    ports:
+      - "5000:5000"
+    command: sh -c "npm install && npm start"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tetring-fastapi
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://tetring:tetring@postgres:5432/tetring
+      SECRET_KEY: ${SECRET_KEY:-cambiar-en-produccion}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SAES_API_URL: http://saes-api:5000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      saes-api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
