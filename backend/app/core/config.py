@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     SAES_API_URL: str = "http://localhost:5000"
 
+    FRONTEND_URL: str = "http://localhost:5173"
+
     ENCRYPTION_KEY: str = ""
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
