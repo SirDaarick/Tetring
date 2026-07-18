@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, String, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -66,4 +66,23 @@ class User(Base):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
         comment="Fecha y hora de la última actualización",
+    )
+
+    kardex_entries: Mapped[list["KardexEntry"]] = relationship(
+        "KardexEntry",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    curriculum_courses: Mapped[list["CurriculumCourse"]] = relationship(
+        "CurriculumCourse",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    current_schedules: Mapped[list["CurrentSchedule"]] = relationship(
+        "CurrentSchedule",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )

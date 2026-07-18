@@ -4,7 +4,16 @@ Todos los modelos deben importarse aquí para que Alembic pueda detectarlos
 automáticamente al ejecutar `alembic revision --autogenerate`.
 """
 
+from app.models.curriculum_course import CurriculumCourse
+from app.models.current_schedule import CurrentSchedule
+from app.models.kardex_entry import KardexEntry
 from app.models.saes_credential import SaesCredential
 from app.models.user import User
 
-__all__ = ["SaesCredential", "User"]
+__all__ = [
+    "CurriculumCourse",
+    "CurrentSchedule",
+    "KardexEntry",
+    "SaesCredential",
+    "User",
+]
