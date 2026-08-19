@@ -45,7 +45,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isAuthenticated: false,
       isLoading: true,
       isSaesExpired: false,
-      sidebarCollapsed: false,
+      sidebarCollapsed: true,
 
       setTokens: (accessToken, refreshToken) => {
         set({
