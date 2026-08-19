@@ -247,7 +247,7 @@ function parseScheduleToBlocks(
   return blocks;
 }
 
-function ScheduleVisualGrid({ groups }: { groups: ScheduleGroup[] }): ReactElement {
+export function ScheduleVisualGrid({ groups }: { groups: ScheduleGroup[] }): ReactElement {
   const colorsMap = useMemo(() => {
     const map = new Map<string, (typeof PALETA_COLORES)[0]>();
     const asignaturasUnicas = Array.from(new Set(groups.map((g) => g.asignatura)));
