@@ -222,12 +222,21 @@ async def sync_current_schedule(db: AsyncSession, current_user: User) -> int:
 async def sync_all(db: AsyncSession, current_user: User) -> dict[str, int]:
     """Ejecuta la sincronización completa de kárdex, currícula y horario.
 
-    Actualiza la marca de última sincronización solo si los tres pasos
-    terminaron correctamente. Retorna un diccionario con los conteos.
+    Actualiza la marca de última sincronización si el kárdex sincronizó con éxito.
     """
     kardex_count = await sync_kardex(db, current_user)
-    curriculum_count = await sync_curriculum(db, current_user)
-    schedule_count = await sync_current_schedule(db, current_user)
+    
+    curriculum_count = 0
+    try:
+        curriculum_count = await sync_curriculum(db, current_user)
+    except Exception as e:
+        print(f"[sync_service] Warning: No se pudo sincronizar la currícula completa del SAES ({e}). Continuando con kárdex...")
+
+    schedule_count = 0
+    try:
+        schedule_count = await sync_current_schedule(db, current_user)
+    except Exception as e:
+        print(f"[sync_service] Warning: No se pudo sincronizar el horario actual del SAES ({e}). Continuando...")
 
     await update_last_sync_at(db, current_user.id)
 
