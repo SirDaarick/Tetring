@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { useMemo, useState } from "react";
-import { Calendar, GraduationCap, TrendingUp, Award, BookOpen } from "lucide-react";
+import { GraduationCap, TrendingUp, Award } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -330,7 +330,7 @@ export function KardexTable({
 
   return (
     <Accordion
-      type="multiple"
+      multiple
       defaultValue={defaultOpen}
       className="space-y-4"
     >

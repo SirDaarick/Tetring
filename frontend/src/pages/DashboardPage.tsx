@@ -12,11 +12,8 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
-  Clock,
   GraduationCap,
   ListTodo,
-  ShieldCheck,
-  Zap,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
