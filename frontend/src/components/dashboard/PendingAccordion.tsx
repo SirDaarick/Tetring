@@ -1,6 +1,7 @@
 /** Acordeón de materias pendientes por semestre.
  *
- * Permite seleccionar materias para enviar al generador.
+ * Permite seleccionar materias para enviar al generador. Incluye estado vacío
+ * con mensaje de celebración.
  */
 import type { ReactElement } from "react";
 import { useMemo, useState } from "react";
@@ -24,14 +25,16 @@ interface PendingAccordionProps {
   subjects: PendingSubject[];
   selected: string[];
   onSelectionChange: (selected: string[]) => void;
+  isLoading?: boolean;
 }
 
 export function PendingAccordion({
   subjects,
   selected,
   onSelectionChange,
+  isLoading,
 }: PendingAccordionProps): ReactElement {
-  const [openSemester, setOpenSemester] = useState<string>("");
+  const [openSemester, setOpenSemester] = useState<string>(() => "");
 
   const bySemester = useMemo(() => {
     const groups = new Map<number, PendingSubject[]>();
@@ -48,6 +51,32 @@ export function PendingAccordion({
       ? selected.filter((item) => item !== clave)
       : [...selected, clave];
     onSelectionChange(next);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-14 rounded-clay border-0 bg-white/70 shadow-clay backdrop-blur-md"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (subjects.length === 0) {
+    return (
+      <div className="rounded-clay-lg border-0 bg-white/70 p-8 text-center shadow-clay backdrop-blur-md">
+        <p className="text-lg font-semibold text-clay-text">
+          ¡Felicidades!
+        </p>
+        <p className="text-clay-text-secondary">
+          No tienes materias pendientes.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -79,7 +108,12 @@ export function PendingAccordion({
                     onCheckedChange={() => toggleSubject(subject.clave)}
                     className="rounded-md border-clay-border data-[state=checked]:border-clay-primary data-[state=checked]:bg-clay-primary"
                   />
-                  <span className="flex-1 text-clay-text">{subject.nombre}</span>
+                  <span className="flex-1 text-clay-text">
+                    {subject.nombre}{" "}
+                    <span className="text-xs font-mono text-clay-text-secondary">
+                      ({subject.clave})
+                    </span>
+                  </span>
                   <span className="text-sm text-clay-text-secondary">
                     {subject.creditos} créd
                   </span>

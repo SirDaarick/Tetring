@@ -9,10 +9,13 @@ from typing import AsyncGenerator
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.occupancy import router as occupancy_router
 from app.api.v1.saes import router as saes_router
+from app.api.v1.schedules import router as schedules_router
 from app.core.config import settings
 from app.core.database import engine
 
@@ -43,6 +46,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+)
+
 v1_router: APIRouter = APIRouter(prefix="/api/v1")
 
 
@@ -56,3 +64,5 @@ app.include_router(v1_router)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(saes_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(schedules_router, prefix="/api/v1")
+app.include_router(occupancy_router, prefix="/api/v1")

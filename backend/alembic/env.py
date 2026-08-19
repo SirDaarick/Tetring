@@ -25,7 +25,10 @@ from app.models import (  # noqa: F401
     curriculum_course,
     current_schedule,
     kardex_entry,
+    option_item,
+    room_occupancy,
     saes_credential,
+    saved_schedule,
     user,
 )
 

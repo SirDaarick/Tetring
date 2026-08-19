@@ -4,24 +4,23 @@ Provee la sesión de base de datos asíncrona y la extracción del usuario
 actual a partir del token JWT enviado en el encabezado Authorization.
 """
 
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db_session
+from app.core.database import AsyncSessionLocal
 from app.core.security import ACCESS_TOKEN_TYPE, verify_token
 from app.models.user import User
 from app.services.auth_service import get_user_by_email
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependencia que entrega una sesión de base de datos asíncrona."""
-    async for session in get_db_session():
-        return session
-    raise RuntimeError("No se pudo obtener una sesión de base de datos")
+    async with AsyncSessionLocal() as session:
+        yield session
 
 
 security_scheme = HTTPBearer(auto_error=False)

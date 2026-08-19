@@ -86,3 +86,9 @@ class User(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    saved_schedules: Mapped[list["SavedSchedule"]] = relationship(
+        "SavedSchedule",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )

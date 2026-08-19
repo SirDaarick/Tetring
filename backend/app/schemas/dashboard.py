@@ -32,6 +32,8 @@ class PendingSubjectResponse(BaseModel):
         None,
         description="Periodo curricular recomendado",
     )
+    semestre: int = Field(0, description="Alias numérico del periodo para el frontend")
+    tipo: str | None = Field(None, description="Tipo de asignatura (Obligatoria, Optativa, etc.)")
 
 
 class PendingBySemester(BaseModel):
@@ -39,6 +41,18 @@ class PendingBySemester(BaseModel):
 
     periodo: str = Field(..., description="Periodo curricular")
     materias: int = Field(..., description="Cantidad de materias pendientes")
+
+
+class CitaReinscripcionInfo(BaseModel):
+    """Información de la cita de reinscripción y límites de créditos."""
+
+    fecha: str | None = Field(None, description="Fecha de la cita (ej. 20/08/2026)")
+    hora: str | None = Field(None, description="Hora de la cita (ej. 10:30)")
+    lugar: str | None = Field(None, description="Lugar o modalidad de la cita")
+    estatus: str | None = Field(None, description="Estatus académico (Regular / Irregular)")
+    creditos_maximos: str | None = Field(None, description="Créditos máximos permitidos a inscribir")
+    creditos_minimos: str | None = Field(None, description="Créditos mínimos permitidos a inscribir")
+    mensaje: str | None = Field(None, description="Mensaje informativo del SAES")
 
 
 class DashboardSummaryResponse(BaseModel):
@@ -65,6 +79,15 @@ class DashboardSummaryResponse(BaseModel):
         ...,
         description="Indica si el usuario tiene un horario sincronizado",
     )
+    
+    # Compatibilidad con el Frontend
+    cursadas: int | None = Field(None, description="Alias para total_cursadas")
+    promedio: float | None = Field(None, description="Alias para promedio_general")
+    pendientes: int | None = Field(None, description="Alias para materias_pendientes")
+    obligatorias_pendientes: int = Field(0, description="Cantidad de materias obligatorias pendientes")
+    optativas_pendientes: int = Field(0, description="Cantidad de materias optativas/electivas restantes por cursar")
+    cita: CitaReinscripcionInfo | None = Field(None, description="Cita de reinscripción y créditos")
+    last_sync_at: str | None = Field(None, description="Fecha de última sincronización con SAES")
 
 
 class CurrentScheduleResponse(BaseModel):

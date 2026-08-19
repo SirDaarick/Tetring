@@ -41,7 +41,9 @@ function AuthInitializer({ children }: { children: React.ReactNode }): ReactElem
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
 
   useEffect(() => {
-    initializeAuth().then(() => setReady(true));
+    initializeAuth()
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, [initializeAuth]);
 
   if (!ready) {
@@ -114,7 +116,14 @@ function AppRoutes(): ReactElement {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>

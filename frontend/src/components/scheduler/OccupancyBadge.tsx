@@ -1,6 +1,7 @@
 /** Badge semáforo de disponibilidad de cupo.
  *
- * 🟢 Disponible, 🟡 Bajo, 🟠 Crítico, 🔴 Lleno.
+ * 🟢 Disponible, 🟡 Bajo, 🟠 Crítico, 🔴 Lleno. El color comunica el estado
+ * de inmediato; el tooltip muestra el número exacto.
  */
 import type { ReactElement } from "react";
 
@@ -13,53 +14,64 @@ import {
 } from "@/components/ui/tooltip";
 
 interface OccupancyBadgeProps {
-  available: number;
+  disponibles: number;
+  cupo: number;
 }
 
-function getOccupancyMeta(available: number): {
+function getOccupancyMeta(
+  disponibles: number
+): {
   label: string;
-  variant: "default" | "secondary" | "destructive" | "outline";
+  dotClass: string;
   className: string;
 } {
-  if (available >= 10) {
+  if (disponibles >= 10) {
     return {
       label: "Disponible",
-      variant: "outline",
-      className: "border-emerald-500/50 bg-emerald-500/10 text-emerald-700",
+      dotClass: "bg-emerald-500",
+      className:
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-700",
     };
   }
-  if (available >= 5) {
+  if (disponibles >= 5) {
     return {
       label: "Bajo",
-      variant: "outline",
-      className: "border-amber-500/50 bg-amber-500/10 text-amber-700",
+      dotClass: "bg-amber-500",
+      className:
+        "border-amber-500/30 bg-amber-500/10 text-amber-700",
     };
   }
-  if (available >= 1) {
+  if (disponibles >= 1) {
     return {
       label: "Crítico",
-      variant: "outline",
-      className: "border-orange-500/50 bg-orange-500/10 text-orange-700",
+      dotClass: "bg-orange-500",
+      className:
+        "border-orange-500/30 bg-orange-500/10 text-orange-700",
     };
   }
   return {
     label: "Lleno",
-    variant: "destructive",
-    className: "border-red-500/50 bg-red-500/10 text-red-700",
+    dotClass: "bg-red-500",
+    className:
+      "border-red-500/30 bg-red-500/10 text-red-700",
   };
 }
 
-export function OccupancyBadge({ available }: OccupancyBadgeProps): ReactElement {
-  const meta = getOccupancyMeta(available);
+export function OccupancyBadge({
+  disponibles,
+  cupo,
+}: OccupancyBadgeProps): ReactElement {
+  const meta = getOccupancyMeta(disponibles);
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>
           <Badge
-            variant={meta.variant}
-            className={`rounded-full ${meta.className}`}
+            variant="outline"
+            className={`gap-1.5 rounded-full border ${meta.className}`}
           >
+            <span className={`h-2 w-2 rounded-full ${meta.dotClass}`} />
             {meta.label}
           </Badge>
         </TooltipTrigger>
@@ -67,7 +79,7 @@ export function OccupancyBadge({ available }: OccupancyBadgeProps): ReactElement
           side="top"
           className="rounded-lg bg-clay-text text-white"
         >
-          {available} lugares disponibles
+          {disponibles} disponibles / {cupo} cupo
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

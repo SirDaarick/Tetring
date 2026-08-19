@@ -57,3 +57,13 @@ alembic.ini.local
 
 # Docker
 .dockerignore
+
+# Agent Tooling
+.atl/
+
+# Bases de datos locales
+*.db
+*.sqlite3
+backend/dev.db
+backend/test_saes_direct.py
+

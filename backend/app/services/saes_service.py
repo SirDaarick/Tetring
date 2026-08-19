@@ -156,8 +156,9 @@ async def link_saes_complete(
     except HTTPException:
         raise
 
-    login_token: str = auth_data.get("login", "")
-    session_token: str = auth_data.get("session", "")
+    credentials_data = auth_data.get("credentials", {})
+    login_token: str = credentials_data.get("login", "") or auth_data.get("login", "")
+    session_token: str = credentials_data.get("session", "") or auth_data.get("session", "")
     if not login_token or not session_token:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

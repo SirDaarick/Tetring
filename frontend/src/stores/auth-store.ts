@@ -13,12 +13,16 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isSaesExpired: boolean;
+  sidebarCollapsed: boolean;
 }
 
 interface AuthActions {
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: UserResponse | null) => void;
   setLoading: (isLoading: boolean) => void;
+  setSaesExpired: (isSaesExpired: boolean) => void;
+  toggleSidebar: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     email: string;
@@ -40,6 +44,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: true,
+      isSaesExpired: false,
+      sidebarCollapsed: false,
 
       setTokens: (accessToken, refreshToken) => {
         set({
@@ -55,6 +61,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       setLoading: (isLoading) => {
         set({ isLoading });
+      },
+
+      setSaesExpired: (isSaesExpired) => {
+        set({ isSaesExpired });
+      },
+
+      toggleSidebar: () => {
+        set({ sidebarCollapsed: !get().sidebarCollapsed });
       },
 
       login: async (email, password) => {
@@ -108,30 +122,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       initializeAuth: async () => {
-        const { accessToken, refreshToken } = get();
+        const { accessToken } = get();
 
         if (!accessToken) {
-          set({ isLoading: false });
+          set({ isAuthenticated: false, isLoading: false, user: null });
           return;
         }
 
         try {
           const { data: user } = await api.get<UserResponse>("/auth/me");
-          get().setUser(user);
+          set({ user, isAuthenticated: true, isLoading: false });
         } catch {
-          if (refreshToken) {
-            const refreshed = await get().refreshSession();
-            if (refreshed) {
-              try {
-                const { data: user } = await api.get<UserResponse>("/auth/me");
-                get().setUser(user);
-              } catch {
-                get().logout();
-              }
-            }
-          } else {
-            get().logout();
-          }
+          get().logout();
         } finally {
           set({ isLoading: false });
         }
@@ -142,6 +144,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        sidebarCollapsed: state.sidebarCollapsed,
       }),
     }
   )

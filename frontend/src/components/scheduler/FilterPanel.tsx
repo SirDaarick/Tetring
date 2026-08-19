@@ -1,6 +1,7 @@
 /** Panel de filtros del generador de horarios.
  *
- * Incluye criterio de orden, turno y rango horario.
+ * Incluye criterio de orden, turno, rango horario, límite de resultados y
+ * botón de generación con estado de carga.
  */
 import type { ReactElement } from "react";
 
@@ -14,9 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 export type OrderCriterion = "compact" | "late" | "free";
 export type TurnoFilter = "matutino" | "vespertino" | "mixto";
+export type MaxResults = 50 | 100 | 200 | 500;
 
 interface FilterPanelProps {
   criterion: OrderCriterion;
@@ -25,13 +28,20 @@ interface FilterPanelProps {
   onTurnoChange: (value: TurnoFilter) => void;
   timeRange: [number, number];
   onTimeRangeChange: (value: [number, number]) => void;
+  maxResults: MaxResults;
+  onMaxResultsChange: (value: MaxResults) => void;
+  availableProfessors?: string[];
+  excludeProfessors?: string[];
+  onExcludeProfessorsChange?: (value: string[]) => void;
 }
 
 const CRITERIA: { value: OrderCriterion; label: string }[] = [
   { value: "compact", label: "Compacto" },
   { value: "late", label: "Entrar tarde" },
-  { value: "free", label: "Días libres" },
+  { value: "free", label: "Más días libres" },
 ];
+
+const MAX_RESULTS_OPTIONS: MaxResults[] = [50, 100, 200, 500];
 
 function formatHour(value: number): string {
   const hours = Math.floor(value / 60);
@@ -46,6 +56,11 @@ export function FilterPanel({
   onTurnoChange,
   timeRange,
   onTimeRangeChange,
+  maxResults,
+  onMaxResultsChange,
+  availableProfessors = [],
+  excludeProfessors = [],
+  onExcludeProfessorsChange,
 }: FilterPanelProps): ReactElement {
   return (
     <div className="space-y-6 rounded-clay border-0 bg-white/70 p-5 shadow-clay backdrop-blur-md">
@@ -104,12 +119,46 @@ export function FilterPanel({
         </div>
         <Slider
           value={timeRange}
-          min={420}
+          min={360}
           max={1320}
           step={30}
           onValueChange={(value) => onTimeRangeChange(value as [number, number])}
           className="py-2"
         />
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-clay-text">Excluir Profesores</Label>
+        <MultiSelect 
+          options={availableProfessors} 
+          selected={excludeProfessors} 
+          onChange={(val) => onExcludeProfessorsChange?.(val)} 
+          placeholder="Seleccionar profesores" 
+        />
+      </div>
+
+      <div className="space-y-3">
+        <Label htmlFor="max-results-select" className="text-clay-text">
+          Máximo de resultados
+        </Label>
+        <Select
+          value={String(maxResults)}
+          onValueChange={(value) => onMaxResultsChange(Number(value) as MaxResults)}
+        >
+          <SelectTrigger
+            id="max-results-select"
+            className="rounded-2xl border-0 bg-[#f4f1fa] shadow-clay-input focus:ring-2 focus:ring-clay-primary focus:ring-offset-2"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-clay border-0 bg-white/95 shadow-clay-lg backdrop-blur-md">
+            {MAX_RESULTS_OPTIONS.map((option) => (
+              <SelectItem key={option} value={String(option)}>
+                {option} opciones
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

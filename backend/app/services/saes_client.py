@@ -20,12 +20,12 @@ _SCHOOLS: list[dict[str, str]] = [
     {
         "id": "escom",
         "name": "ESCOM - Escuela Superior de Cómputo",
-        "url": "https://saes.escom.ipn.mx",
+        "url": "https://www.saes.escom.ipn.mx",
     },
     {
         "id": "esiatec",
         "name": "ESIATEC - Escuela Superior de Ingeniería y Arquitectura",
-        "url": "https://saes.esiatec.ipn.mx",
+        "url": "https://www.saes.esiatec.ipn.mx",
     },
 ]
 
@@ -43,6 +43,18 @@ def _saes_url(path: str) -> str:
 
 def _map_saes_error(response: httpx.Response, context: str = "SAES") -> HTTPException:
     """Convierte errores de `saes-api` en excepciones HTTP con mensajes en español."""
+    try:
+        err_data = response.json()
+        if isinstance(err_data, dict):
+            err_msg = err_data.get("error") or err_data.get("message")
+            if err_msg == "SESSION_EXPIRED" or err_data.get("error") == "SESSION_EXPIRED":
+                return HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="SESSION_EXPIRED",
+                )
+    except Exception:
+        pass
+
     if response.status_code == status.HTTP_401_UNAUTHORIZED:
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -116,10 +128,13 @@ async def authenticate_saes(
         "captcha": {"id": captcha_id, "solution": captcha_solution},
     }
 
+    print(f"[DEBUG-BACKEND] authenticate_saes -> school={school}, credential={credential[:8]}..., username={username}, captcha_id={captcha_id}, solution={captcha_solution}")
     async with httpx.AsyncClient() as client:
         try:
+            url = _saes_url("/login")
+            print(f"[DEBUG-BACKEND] POST request to: {url}")
             response = await client.post(
-                _saes_url("/login"),
+                url,
                 headers={
                     "X-SAES-School": school,
                     "session": credential,
@@ -127,13 +142,16 @@ async def authenticate_saes(
                 json=payload,
                 timeout=30.0,
             )
+            print(f"[DEBUG-BACKEND] Response status: {response.status_code}")
         except httpx.RequestError as exc:
+            print(f"[DEBUG-BACKEND] RequestError calling saes-api: {exc!r}")
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="SAES no disponible, intenta más tarde",
             ) from exc
 
     if response.status_code != status.HTTP_200_OK:
+        print(f"[DEBUG-BACKEND] Authentication failed. Response text: {response.text}")
         raise _map_saes_error(response, "autenticación SAES")
 
     return response.json()
@@ -145,11 +163,13 @@ async def make_saes_request(
     session_token: str,
     path: str,
     method: str = "GET",
+    params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Realiza una petición genérica autenticada contra `saes-api`.
 
     Envía los encabezados `login` y `session` (NO `Authorization: Bearer`).
     Acepta `GET` o `POST`; el cuerpo opcional se pasa como JSON vacío para `POST`.
+    Los parámetros de consulta opcionales se envían en peticiones `GET`.
     """
     url: str = _saes_url(path)
     headers: dict[str, str] = {
@@ -157,13 +177,16 @@ async def make_saes_request(
         "login": login_token,
         "session": session_token,
     }
+    request_params = params or {}
 
     async with httpx.AsyncClient() as client:
         try:
             if method.upper() == "POST":
                 response = await client.post(url, headers=headers, json={}, timeout=30.0)
             else:
-                response = await client.get(url, headers=headers, timeout=30.0)
+                response = await client.get(
+                    url, headers=headers, params=request_params, timeout=30.0
+                )
         except httpx.RequestError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
