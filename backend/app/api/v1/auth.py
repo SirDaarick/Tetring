@@ -108,7 +108,17 @@ async def google_login(request: Request) -> RedirectResponse:
     """Redirige al usuario a la pantalla de consentimiento de Google."""
     state: str = secrets.token_urlsafe(32)
     request.session["oauth_state"] = state
+    
+    # Construir redirect_uri respetando ngrok / https / proxy
     redirect_uri: str = str(request.url_for("google_callback"))
+    # Si viene a través de proxy o ngrok con https pero url_for generó http, forzar https
+    proto = request.headers.get("x-forwarded-proto")
+    if proto == "https" and redirect_uri.startswith("http://"):
+        redirect_uri = "https://" + redirect_uri[len("http://"):]
+    elif "ngrok" in redirect_uri and redirect_uri.startswith("http://"):
+        redirect_uri = "https://" + redirect_uri[len("http://"):]
+        
+    print(f"\n[GOOGLE OAUTH DEBUG] redirect_uri enviada a Google: --> {redirect_uri} <--\n")
     return await oauth.google.authorize_redirect(request, redirect_uri, state=state)
 
 
