@@ -330,7 +330,7 @@ function ScheduleVisualGrid({ groups }: { groups: ScheduleGroup[] }): ReactEleme
 
                     return (
                       <Tooltip key={block.id}>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <div
                             tabIndex={0}
                             role="button"
