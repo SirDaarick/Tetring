@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,20 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { api, extractErrorMessage } from "@/lib/api";
-
-interface School {
-  id: string;
-  name: string;
-  url: string;
-}
 
 interface SaesConnectionWizardProps {
   open: boolean;
@@ -37,8 +24,7 @@ export function SaesConnectionWizard({
   onSuccess,
 }: SaesConnectionWizardProps) {
   const [step, setStep] = useState<"credentials" | "captcha" | "success" | "error">("credentials");
-  const [schools, setSchools] = useState<School[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState("escom");
   const [boleta, setBoleta] = useState("");
   const [password, setPassword] = useState("");
   const [captchaSolution, setCaptchaSolution] = useState("");
@@ -47,23 +33,6 @@ export function SaesConnectionWizard({
   const [errorMsg, setErrorMsg] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
-
-  // Cargar escuelas disponibles al abrir
-  useEffect(() => {
-    if (open) {
-      api
-        .get<School[]>("/saes/schools")
-        .then((res) => {
-          setSchools(res.data);
-          if (res.data.length > 0) {
-            setSelectedSchool(res.data[0].id);
-          }
-        })
-        .catch((err) => {
-          console.error("Error al cargar escuelas:", err);
-        });
-    }
-  }, [open]);
 
   // Paso 1: Iniciar vinculación (Obtener Captcha)
   const handleStartLink = async () => {
@@ -162,25 +131,59 @@ export function SaesConnectionWizard({
         {/* PASO 1: Datos de la Escuela y Boleta */}
         {step === "credentials" && (
           <div className="space-y-4 pt-1">
+            {/* Selector Visual de Plantel */}
             <div className="space-y-2">
-              <Label htmlFor="school-select" className="text-sm font-semibold text-clay-text">
-                Plantel / Escuela
+              <Label className="text-sm font-semibold text-clay-text flex items-center justify-between">
+                <span>Selecciona tu Plantel</span>
+                <span className="text-xs text-clay-text-secondary font-normal">IPN</span>
               </Label>
-              <Select value={selectedSchool} onValueChange={(val) => setSelectedSchool(val || "")}>
-                <SelectTrigger
-                  id="school-select"
-                  className="h-12 rounded-2xl border-0 bg-[#f4f1fa] px-4 shadow-clay-input focus:ring-2 focus:ring-clay-primary"
-                >
-                  <SelectValue placeholder="Selecciona tu escuela" />
-                </SelectTrigger>
-                <SelectContent className="rounded-clay border-0 bg-white/95 shadow-clay-lg">
-                  {schools.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>
-                      {school.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  {
+                    id: "escom",
+                    siglas: "ESCOM",
+                    nombre: "Escuela Superior de Cómputo",
+                    carreras: "ISC · LCD · IIA",
+                    icon: "💻",
+                  },
+                  {
+                    id: "esiatec",
+                    siglas: "ESIATEC",
+                    nombre: "ESIA Tecamachalco",
+                    carreras: "Ing. Arquitecto",
+                    icon: "🏛️",
+                  },
+                ].map((s) => {
+                  const isSelected = (selectedSchool || "escom") === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelectedSchool(s.id)}
+                      className={`relative flex flex-col items-start p-3.5 rounded-2xl text-left transition-all duration-300 ${
+                        isSelected
+                          ? "bg-white text-clay-text shadow-clay-lg border-2 border-clay-primary -translate-y-0.5"
+                          : "bg-clay-surface/40 hover:bg-white/60 text-clay-text-secondary border-2 border-transparent shadow-clay-input hover:shadow-clay"
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-clay-primary ring-4 ring-clay-primary/20" />
+                      )}
+                      <div className="text-2xl mb-1.5">{s.icon}</div>
+                      <span className={`font-bold text-sm leading-none mb-1 ${isSelected ? "text-clay-primary" : "text-clay-text"}`}>
+                        {s.siglas}
+                      </span>
+                      <span className="text-[11px] text-clay-text-secondary leading-tight line-clamp-1 mb-1.5">
+                        {s.nombre}
+                      </span>
+                      <span className="inline-block text-[9px] font-semibold px-2 py-0.5 rounded-md bg-clay-surface text-clay-text-secondary/80">
+                        {s.carreras}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-2">
