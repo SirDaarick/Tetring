@@ -298,13 +298,14 @@ async def generate(
     for subject in subjects:
         print(f"[schedule_service] Subject {subject.clave} ({subject.name}) got {len(subject.groups)} groups")
 
-    for subject in subjects:
-        if not subject.groups:
-            print(f"[schedule_service] Subject {subject.clave} has 0 groups. Raising 422.")
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"La materia {subject.clave} no tiene grupos en el horario seleccionado",
-            )
+    sin_grupos = [s for s in subjects if not s.groups]
+    if sin_grupos:
+        nombres_sin_grupos = ", ".join([f"'{s.name}' ({s.clave})" for s in sin_grupos])
+        print(f"[schedule_service] Subjects without groups: {nombres_sin_grupos}. Raising 422.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Las siguientes materias no tienen grupos ofertados este semestre en el SAES: {nombres_sin_grupos}. Por favor desmárcalas para generar tu horario.",
+        )
 
     filters: dict[str, Any] = {}
     if request.turno:

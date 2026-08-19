@@ -141,9 +141,10 @@ export function App(): ReactElement {
       </BrowserRouter>
       <Toaster
         position="bottom-right"
+        duration={5000}
         toastOptions={{
           className:
-            "rounded-clay border-0 bg-white/90 text-clay-text shadow-clay-lg backdrop-blur-md",
+            "rounded-clay border-0 bg-white/95 text-clay-text shadow-clay-lg backdrop-blur-md",
         }}
       />
     </QueryClientProvider>
