@@ -256,7 +256,7 @@ export default function SchedulerPage(): ReactElement {
     <AppShell>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-clay-text">
+          <h1 className="text-2xl font-bold text-clay-text flex items-center gap-2">
             Generador de Horarios
           </h1>
           <p className="text-clay-text-secondary text-sm">
@@ -265,11 +265,12 @@ export default function SchedulerPage(): ReactElement {
         </div>
         <Button
           type="button"
-          variant="outline"
           onClick={() => setOfferDialogOpen(true)}
-          className="gap-2 rounded-2xl border-clay-border/50 bg-white/70 shadow-clay hover:bg-clay-surface active:scale-[0.95]"
+          className="gap-2.5 rounded-2xl bg-white border-2 border-clay-primary/30 px-5 py-5 text-sm font-bold text-clay-primary shadow-clay hover:bg-clay-surface hover:-translate-y-0.5 hover:shadow-clay-lg active:scale-[0.95] transition-all duration-300"
         >
-          <Calendar className="h-4 w-4 text-clay-primary" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-clay-primary/10 text-clay-primary">
+            <Calendar className="h-4 w-4" />
+          </div>
           Ver oferta de grupos
         </Button>
       </div>

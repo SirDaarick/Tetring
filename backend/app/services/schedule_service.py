@@ -355,7 +355,7 @@ async def get_professors(
     db: AsyncSession,
     current_user: User,
 ) -> list[str]:
-    """Retorna una lista de profesores distintos para las materias pendientes."""
+    """Retorna una lista de profesores distintos para las materias pendientes del usuario."""
     pending_subjects = await get_pending(db, current_user)
     if not pending_subjects:
         return []
@@ -372,12 +372,15 @@ async def get_professors(
     claves = [p.clave for p in pending_subjects]
     raw_groups = await _fetch_subject_groups(credential.school, tokens, claves, carrera)
 
+    subjects_with_groups = _build_subjects_with_groups(pending_subjects, raw_groups)
+
     professors = set()
-    for raw in raw_groups:
-        prof = raw.get("profesor")
-        if prof:
-            professors.add(str(prof).strip())
-            
+    for s in subjects_with_groups:
+        for group in s.groups:
+            prof = (group.profesor or "").strip()
+            if prof and prof.upper() not in ["POR ASIGNAR", "SIN PROFESOR", ""]:
+                professors.add(prof)
+
     return sorted(list(professors))
 
 
