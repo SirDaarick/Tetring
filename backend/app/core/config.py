@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     SAES_API_URL: str = "http://localhost:5000"
 
     FRONTEND_URL: str = "http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:4173"
 
     ENCRYPTION_KEY: str = ""
 
