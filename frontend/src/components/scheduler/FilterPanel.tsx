@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Clock, Sun, Moon, Sparkles } from "lucide-react";
+import { Clock, Sun, Moon, Sparkles, UserX } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 export type OrderCriterion = "compact" | "late" | "free";
 export type TurnoFilter = "matutino" | "vespertino" | "mixto";
@@ -25,6 +26,9 @@ interface FilterPanelProps {
   onTimeRangeChange: (value: [number, number]) => void;
   maxResults: MaxResults;
   onMaxResultsChange: (value: MaxResults) => void;
+  availableProfessors?: string[];
+  excludeProfessors?: string[];
+  onExcludeProfessorsChange?: (value: string[]) => void;
 }
 
 const CRITERIA: { value: OrderCriterion; label: string; desc: string }[] = [
@@ -52,6 +56,9 @@ export function FilterPanel({
   onTimeRangeChange,
   maxResults,
   onMaxResultsChange,
+  availableProfessors = [],
+  excludeProfessors = [],
+  onExcludeProfessorsChange,
 }: FilterPanelProps): ReactElement {
   return (
     <div className="space-y-6 rounded-clay border-0 bg-white/70 p-5 shadow-clay backdrop-blur-md">
@@ -190,7 +197,23 @@ export function FilterPanel({
         </div>
       </div>
 
-      {/* 4. Límite de combinaciones */}
+      {/* 4. Excluir Profesores */}
+      {availableProfessors.length > 0 && (
+        <div className="space-y-2.5 pt-1 border-t border-clay-border/10">
+          <Label className="text-sm font-bold text-clay-text flex items-center gap-1.5">
+            <UserX className="h-4 w-4 text-clay-error" />
+            Excluir Profesores
+          </Label>
+          <MultiSelect
+            options={availableProfessors}
+            selected={excludeProfessors}
+            onChange={(val) => onExcludeProfessorsChange?.(val)}
+            placeholder="Seleccionar profesores a evitar..."
+          />
+        </div>
+      )}
+
+      {/* 5. Límite de combinaciones */}
       <div className="space-y-2.5 pt-1 border-t border-clay-border/10">
         <Label htmlFor="max-results-select" className="text-xs font-semibold text-clay-text-secondary">
           Límite de combinaciones a generar

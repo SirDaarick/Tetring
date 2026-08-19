@@ -172,6 +172,7 @@ function SavedPage(): ReactElement {
                           <th className="p-3">Grupo</th>
                           <th className="p-3">Profesor</th>
                           <th className="p-3">Horario</th>
+                          <th className="p-3 text-center">Lugares</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-clay-border/10">
@@ -202,6 +203,11 @@ function SavedPage(): ReactElement {
                               </td>
                               <td className="p-3 font-mono text-xs text-clay-primary">
                                 {scheduleStr}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                                  ✓ Disponible
+                                </span>
                               </td>
                             </tr>
                           );

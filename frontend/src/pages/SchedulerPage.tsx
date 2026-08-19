@@ -108,6 +108,13 @@ export default function SchedulerPage(): ReactElement {
     });
   };
 
+  const [excludeProfessors, setExcludeProfessors] = useState<string[]>(() => []);
+
+  const { data: availableProfessors = [] } = useQuery<string[]>({
+    queryKey: ["schedules", "professors"],
+    queryFn: () => api.get<string[]>("/schedules/professors").then((res) => res.data),
+  });
+
   const { data: pending, isLoading: pendingLoading } = useQuery<
     PendingSubjectResponse[]
   >({
@@ -205,6 +212,7 @@ export default function SchedulerPage(): ReactElement {
       turno: turno === "mixto" ? undefined : turno,
       scoring: [criterion],
       pinned_groups: pinnedGroups,
+      exclude_professors: excludeProfessors.length > 0 ? excludeProfessors : undefined,
       filters: {
         start_min: timeRange[0],
         start_max: timeRange[1],
@@ -299,6 +307,9 @@ export default function SchedulerPage(): ReactElement {
             onTimeRangeChange={setTimeRange}
             maxResults={maxResults}
             onMaxResultsChange={setMaxResults}
+            availableProfessors={availableProfessors}
+            excludeProfessors={excludeProfessors}
+            onExcludeProfessorsChange={setExcludeProfessors}
           />
         </div>
 
