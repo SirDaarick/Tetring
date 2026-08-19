@@ -25,7 +25,7 @@ export function ProfilePage(): ReactElement {
   });
 
   const unlinkMutation = useMutation({
-    mutationFn: () => api.post("/saes/unlink"),
+    mutationFn: () => api.delete("/saes/unlink"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["saes", "profile"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
