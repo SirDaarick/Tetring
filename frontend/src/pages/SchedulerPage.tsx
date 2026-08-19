@@ -108,6 +108,13 @@ export default function SchedulerPage(): ReactElement {
     });
   };
 
+  const [excludeProfessors, setExcludeProfessors] = useState<string[]>(() => []);
+
+  const { data: availableProfessors = [] } = useQuery<string[]>({
+    queryKey: ["schedules", "professors"],
+    queryFn: () => api.get<string[]>("/schedules/professors").then((res) => res.data),
+  });
+
   const { data: pending, isLoading: pendingLoading } = useQuery<
     PendingSubjectResponse[]
   >({
@@ -205,6 +212,7 @@ export default function SchedulerPage(): ReactElement {
       turno: turno === "mixto" ? undefined : turno,
       scoring: [criterion],
       pinned_groups: pinnedGroups,
+      exclude_professors: excludeProfessors.length > 0 ? excludeProfessors : undefined,
       filters: {
         start_min: timeRange[0],
         start_max: timeRange[1],
@@ -266,13 +274,14 @@ export default function SchedulerPage(): ReactElement {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[25%_75%]">
-        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[28%_72%] items-start">
+        {/* Columna Izquierda: Filtros y Selector con Scroll Independiente */}
+        <div className="space-y-6 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-2 lg:scrollbar-thin lg:scrollbar-thumb-clay-primary/20 lg:scrollbar-track-transparent">
           <Button
             type="button"
             onClick={handleGenerate}
             disabled={selectedSubjects.length === 0 || generateMutation.isPending}
-            className="w-full gap-2 rounded-2xl bg-gradient-to-r from-clay-primary-soft to-clay-primary text-white shadow-clay py-4 text-base font-bold hover:-translate-y-0.5 hover:shadow-clay-lg active:scale-[0.95] transition-all duration-300 disabled:opacity-60"
+            className="w-full gap-2 rounded-2xl bg-gradient-to-r from-clay-primary-soft to-clay-primary text-white shadow-clay py-4 text-base font-bold hover:-translate-y-0.5 hover:shadow-clay-lg active:scale-[0.95] transition-all duration-300 disabled:opacity-60 shrink-0 sticky top-0 z-10 backdrop-blur-sm"
           >
             {generateMutation.isPending ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -298,6 +307,9 @@ export default function SchedulerPage(): ReactElement {
             onTimeRangeChange={setTimeRange}
             maxResults={maxResults}
             onMaxResultsChange={setMaxResults}
+            availableProfessors={availableProfessors}
+            excludeProfessors={excludeProfessors}
+            onExcludeProfessorsChange={setExcludeProfessors}
           />
         </div>
 

@@ -129,8 +129,8 @@ export function Sidebar(): ReactElement {
   const sidebarCollapsed = useAuthStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useAuthStore((state) => state.toggleSidebar);
 
-  // El menú está colapsado efectivamente si está configurado como colapsado Y el cursor NO está encima.
-  const activeCollapsed = sidebarCollapsed && !isHovered;
+  // Por defecto se mantiene compacta (iconos) y al pasar el mouse por encima se expande de inmediato
+  const isExpanded = isHovered || !sidebarCollapsed;
 
   return (
     <>
@@ -156,21 +156,22 @@ export function Sidebar(): ReactElement {
         </Sheet>
       </div>
 
-      {/* Desktop / Tablet Collapsible Sidebar */}
+      {/* Desktop / Tablet Hover-expanding Sidebar */}
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`hidden md:flex md:flex-col md:h-screen md:sticky md:top-0 md:z-30 border-r border-clay-border/10 bg-[#f4f1fa] transition-all duration-300 shrink-0 ${
-          activeCollapsed ? "md:w-20" : "md:w-20 lg:w-60 shadow-xl shadow-clay-primary/10"
+        className={`hidden md:flex md:flex-col md:h-screen md:sticky md:top-0 md:z-40 border-r border-clay-border/10 bg-[#f4f1fa] transition-all duration-300 ease-in-out shrink-0 ${
+          isExpanded ? "w-60 shadow-2xl shadow-clay-primary/15" : "w-20"
         }`}
       >
-        <SidebarContent isCollapsed={activeCollapsed} />
+        <SidebarContent isCollapsed={!isExpanded} />
 
-        {/* Floating Toggle Button */}
+        {/* Botón flotante para fijar o desfijar el menú abierto */}
         <button
+          type="button"
           onClick={toggleSidebar}
           className="hidden lg:flex absolute right-[-14px] top-12 z-50 h-7 w-7 items-center justify-center rounded-full border border-clay-border bg-white text-clay-text shadow-clay hover:bg-clay-surface hover:-translate-y-0.5 active:scale-[0.9] transition-all duration-300"
-          title={sidebarCollapsed ? "Fijar menú abierto" : "Colapsar menú (abrir por hover)"}
+          title={sidebarCollapsed ? "Fijar menú siempre abierto" : "Colapsar menú (expandir con mouse)"}
         >
           {sidebarCollapsed ? (
             <ChevronRight className="h-4 w-4 text-clay-primary" />

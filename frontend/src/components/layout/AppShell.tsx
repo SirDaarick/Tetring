@@ -18,24 +18,35 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps): ReactElement {
   const isSaesExpired = useAuthStore((state) => state.isSaesExpired);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f4f1fa] flex flex-col">
-      {isSaesExpired && (
-        <div className="w-full bg-gradient-to-r from-amber-500/90 to-orange-500/95 text-white py-3 px-6 shadow-md backdrop-blur-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50 transition-all duration-300">
+      {isSaesExpired && !bannerDismissed && (
+        <div className="w-full bg-gradient-to-r from-amber-500/95 to-orange-500/95 text-white py-2.5 px-6 shadow-md backdrop-blur-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50 transition-all duration-300">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 shrink-0 text-amber-100 animate-pulse" />
             <p className="text-sm font-medium">
-              Tu sesión de SAES ha expirado. Para seguir obteniendo tus grupos y horarios en tiempo real, vuelve a conectar tu cuenta.
+              Tu sesión de SAES ha expirado. Si necesitas sincronizar kárdex o consultar cupos en vivo, actualiza tu sesión.
             </p>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setWizardOpen(true)}
-            className="rounded-xl bg-white text-orange-600 hover:bg-orange-50 font-bold shadow-clay px-4 shrink-0 transition-transform active:scale-95 border-0"
-          >
-            Actualizar Sesión
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setWizardOpen(true)}
+              className="rounded-xl bg-white text-orange-600 hover:bg-orange-50 font-bold shadow-clay px-4 shrink-0 transition-transform active:scale-95 border-0"
+            >
+              Actualizar Sesión
+            </Button>
+            <button
+              type="button"
+              onClick={() => setBannerDismissed(true)}
+              className="p-1 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+              title="Descartar aviso"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
       
